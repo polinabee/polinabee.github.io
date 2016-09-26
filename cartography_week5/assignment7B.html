@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<!-- Make sure to provide a title here! -->
+	<title> U.S. Median Age</title>
+	<meta charset="utf-8" />
+
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.3/leaflet.css" />
+
+	<style>
+		#map {
+			width: 800px;
+			height: 500px;
+		}
+
+		.info {
+			padding: 6px 8px;
+			font: 14px/16px Arial, Helvetica, sans-serif;
+			background: white;
+			background: rgba(255,255,255,0.8);
+			box-shadow: 0 0 15px rgba(0,0,0,0.2);
+			border-radius: 5px;
+		}
+		.info h4 {
+			margin: 0 0 5px;
+			color: #777;
+		}
+
+		.legend {
+			text-align: left;
+			line-height: 18px;
+			color: #555;
+		}
+		.legend i {
+			width: 18px;
+			height: 18px;
+			float: left;
+			margin-right: 8px;
+			opacity: 0.7;
+		}
+	</style>
+</head>
+<body>
+	<div id="map"></div>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.3/leaflet.js"></script>
+	<!-- BELOW: Imports a ColorBrewer library, containing a number of excellent pre-designed color schemes
+	The sequential color schemes are: Blues BuGn BuPu GnBu Greens Greys Oranges OrRd PuBu PuBuGn PuRd Purples RdPu Reds YlGn YlGnBu YlOrBr YlOrRd
+	The diverging color schemes are: BrBG PiYG PRGn PuOr RdBu RdGy RdYlBu RdYlGn Spectral
+	 -->
+	<script src="colorbrewer.js"></script>
+	<!-- You will insert your GeoJSON file here, in place of the demonstration file. Don't forget to give your GeoJSON variable a name!  -->
+	<script type = "text/javascript" src="USAgeState.json"></script>
+	
+	<script type="text/javascript">
+		// Creates the Leaflet map object
+		var map = L.map('map').setView([37.8, -96], 4);
+		// Adds a base map
+		L.tileLayer('https://{s}.tiles.mapbox.com/v3/{id}/{z}/{x}/{y}.png', {
+			maxZoom: 18,
+			attribution: 'Map data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors, ' +
+				'<a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, ' +
+				'Imagery © <a href="http://mapbox.com">Mapbox</a>',
+			id: 'examples.map-20v6611k'
+		}).addTo(map);
+
+
+		// Creates a box that shows information about map objects on hovering
+		var info = L.control();
+		info.onAdd = function (map) {
+			this._div = L.DomUtil.create('div', 'info');
+			this.update();
+			return this._div;
+		};
+
+		// This function updates the info box when you hover.  This is what you will need to change to adapt the map's hover behavior for your data!
+		info.update = function (props) {
+			this._div.innerHTML = '<h4>US Median Age per State in 2010</h4>' +  (props ?
+				'<b>' + props.NAME10 + '</b><br />' + props.MedianAge + ' years '
+				: 'Hover over a state');
+		};
+
+		// Adds info box to map
+		info.addTo(map);
+
+		// Assigns colors based on data values -- you will need to change BOTH the values and the colors!
+		function getColor(d) {
+			return d > 41  ? colorbrewer.YlOrBr[8][7] :
+			       d > 39  ? colorbrewer.YlOrBr[8][6] :
+			       d > 38  ? colorbrewer.YlOrBr[8][5] :
+			       d > 37  ? colorbrewer.YlOrBr[8][4] :
+			       d > 36   ? colorbrewer.YlOrBr[8][3] :
+			       d > 35   ? colorbrewer.YlOrBr[8][2] :
+			       d > 29   ? colorbrewer.YlOrBr[8][1] :
+			                  colorbrewer.YlOrBr[8][0];
+		}
+
+		// Specifies other style rules for your map
+		function style(feature) {
+			return {
+				weight: 1,
+				opacity: 0.5,
+				color: 'red',
+				dashArray: '3',
+				fillOpacity: 0.7,
+				fillColor: getColor(feature.properties.MedianAge) // replace variable name with the name of the variable you want to map
+			};
+		}
+
+		// Sets highlight on hover -- don't worry about this function, as it is pre-prepared
+		function highlightFeature(e) {
+			var layer = e.target;
+
+			layer.setStyle({
+				weight: 5,
+				color: '#666',
+				dashArray: '',
+				fillOpacity: 0.7
+			});
+
+			if (!L.Browser.ie && !L.Browser.opera) {
+				layer.bringToFront();
+			}
+
+			info.update(layer.feature.properties);
+		}
+		
+		// Resets highlight after hover -- don't worry about this function, as it is pre-prepared
+		function resetHighlight(e) {
+			geojson.resetStyle(e.target);
+			info.update();
+		}
+
+		// Handles updating of information and highlighting -- don't worry about this function, as it is pre-prepared
+		function onEachFeature(feature, layer) {
+			layer.on({
+				mouseover: highlightFeature,
+				mouseout: resetHighlight
+			});
+		}
+		
+		// Creates GeoJSON layer on your map
+		var geojson = L.geoJson(age, {
+			style: style, // uses style rules declared above
+			onEachFeature: onEachFeature // uses function declared above
+		}).addTo(map);
+
+		// Change attribution accordingly, to give credit to the source of your data.
+		map.attributionControl.addAttribution('Population data &copy; <a href="http://census.gov/">US Census Bureau</a>');
+
+		// Place legend
+		var legend = L.control({position: 'bottomright'});
+
+		legend.onAdd = function (map) {
+
+			var div = L.DomUtil.create('div', 'info legend'),
+				// Add your class breaks here as well
+				grades = [29, 29, 35, 36, 37, 38, 40, 43],
+				labels = [],
+				from, to;
+			// Handles the details of generating a dynamic legend -- don't worry about the rest of this!
+			for (var i = 0; i < grades.length; i++) {
+				from = grades[i];
+				to = grades[i + 1];
+
+				labels.push(
+					'<i style="background:' + getColor(from + 1) + '"></i> ' +
+					from + (to ? '&ndash;' + to : '+'));
+			}
+
+			div.innerHTML = labels.join('<br>');
+			return div;
+		};
+
+		// Adds legend to your map
+		legend.addTo(map);
+
+	</script>
+	<div>I chose an orange multi-hue scheme to visualize my data. Since I am using sequential data, I wanted the color to intensify according the the magnitude of the number it is representing, in this case the median age. 
+I chose a natural breaks classification because it allowed for the best visualization of the variability in the data, while preserving relatively similar numerical data in each color bin. My data does not span a large range of values, but there is more variability at the higher end. However, there is an outlier that could only be visualized with the natural breaks method. Using an equal interval scheme prevents certain ranges from containing any data, removing that color from the map, while a quantile interval does not show the outlier and removes resolution from the mid-range values.</div>
+</body>
+</html>

@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Crime Distribution in LA County</title>
+	<meta charset="utf-8" />
+
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.3/leaflet.css" />
+	<!--[if lte IE 8]>
+	    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.3/leaflet.ie.css" />
+	<![endif]-->
+	<style>
+		body { width: 100%; height: 100%; margin: 0; }
+		#title { position: absolute; right: 50px; margin: 10px; z-index: 1; background-color: #fff; padding: 10px; font-size: 16px; font-family: 'Helvetica', 'Arial', sans-serif; border-radius: 5px; box-shadow: 0 0 5px rgba(0,0,0,0.5); }
+	</style>
+</head>
+<body>
+	<div id="title">Spatial Relationship of Crimes to Major Streets and Income Levels in LA County</div>
+	<div id="map" style="position: absolute; width: 100%; height: 100%;"></div>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.3/leaflet.js"></script>
+	<script src="LACrime.geojson"></script>
+	<script src="LAStreets.geojson"></script>
+	<script src="LATracts.geojson"></script>
+	<script>
+
+		var map = L.map('map').setView([34.0570, -118.2380], 13);
+
+		L.tileLayer('https://{s}.tiles.mapbox.com/v3/{id}/{z}/{x}/{y}.png', {
+			maxZoom: 18,
+			attribution: 'Map data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors, ' +
+				'<a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, ' +
+				'Imagery © <a href="http://mapbox.com">Mapbox</a>',
+			id: 'examples.map-20v6611k'
+		}).addTo(map);
+
+    	var TractStyle = {
+    		"color": "#00CC99",
+    		"weight": 2,
+    		"opacity": 0.6
+    	};
+
+    	var tractsLayer = L.geoJson(tracts,{
+    		style: TractStyle,
+    		onEachFeature: function(feature, layer){
+    			layer.bindPopup(feature.properties.Name + ", Median Income: $"+ feature.properties.Median);
+    		}
+    	}).addTo(map);
+
+    	var StreetStyle = {
+    		"color": "#0066CC",
+    		"weight": 3,
+    		"opacity": 0.5
+    	};
+
+    	var streetsLayer = L.geoJson(streets,{
+    		style: StreetStyle,
+    		onEachFeature: function(feature, layer){
+    			layer.bindPopup("Street: "+ feature.properties.NAME);
+    		}
+    	}).addTo(map);
+
+		var geojsonCrimeMarker = {
+			radius: 5,
+    		fillColor: "#FF3399",
+    		color: "#000",
+    		weight: 1,
+    		opacity: 1,
+    		fillOpacity: 0.6
+    	};
+
+    	var crimesLayer = L.geoJson(crimes,{
+    		pointToLayer: function(feature, latlng){
+    			return L.circleMarker(latlng, geojsonCrimeMarker);
+    		},
+    		onEachFeature: function(feature, layer){
+    			layer.bindPopup(feature.properties.CATEGORY+ ", Address: "+feature.properties.ADDRESS);
+    		}
+    	}).addTo(map);
+
+    	var overlay_layers = {
+			"Crimes": crimesLayer,
+			"Major Streets": streetsLayer,
+			"Tract with Income Data": tractsLayer
+		}
+		
+		L.control.layers(null, overlay_layers).addTo(map);
+    	
+
+	</script>
+	
+</body>
+</html>
